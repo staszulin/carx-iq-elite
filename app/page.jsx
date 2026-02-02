@@ -55,6 +55,106 @@ function computeIq(item) {
 }
 
 function SearchElite() {
+  function WebSearch() {
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState([]);
+  const [err, setErr] = useState("");
+
+  async function runSearch() {
+    const query = q.trim();
+    if (!query) return;
+    setLoading(true);
+    setErr("");
+    try {
+      const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || "שגיאה");
+      setItems(data.items || []);
+    } catch (e) {
+      setErr("לא הצלחתי להביא תוצאות. בדוק שיש SERPAPI_KEY ב-Vercel.");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
+      <div style={{ fontWeight: 900, fontSize: 16 }}>חיפוש רשת (כמו גוגל)</div>
+      <div style={{ opacity: 0.8, marginTop: 8, lineHeight: 1.5 }}>
+        תוצאות מוצגות עם מקור גלוי ולינק החוצה. זה חוקי ויציב.
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="לדוגמה: טויוטה קורולה 2019 יד2 / marketplace..."
+          style={{
+            flex: "1 1 240px",
+            background: "#0b0b0b",
+            border: "1px solid #333",
+            color: "#f5f5f5",
+            padding: "12px 14px",
+            borderRadius: 12,
+            outline: "none",
+          }}
+        />
+        <button
+          onClick={runSearch}
+          style={{
+            background: BRAND.accent,
+            color: "#0b0b0b",
+            border: "none",
+            padding: "12px 18px",
+            borderRadius: 12,
+            fontWeight: 900,
+            cursor: "pointer",
+            minWidth: 110,
+          }}
+        >
+          {loading ? "מחפש..." : "חפש"}
+        </button>
+      </div>
+
+      {err ? (
+        <div style={{ marginTop: 12, background: "rgba(255,70,70,0.12)", border: "1px solid rgba(255,70,70,0.25)", padding: 10, borderRadius: 12 }}>
+          {err}
+        </div>
+      ) : null}
+
+      <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+        {items.map((x, i) => (
+          <div key={i} style={{ background: "#111", border: "1px solid #333", borderRadius: 16, padding: 14 }}>
+            <div style={{ opacity: 0.75, fontSize: 12 }}>{x.source}</div>
+            <div style={{ fontWeight: 900, marginTop: 6 }}>{x.title}</div>
+            <div style={{ opacity: 0.85, marginTop: 8, lineHeight: 1.5 }}>{x.snippet}</div>
+            <a
+              href={x.link}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                textDecoration: "none",
+                background: "#0b0b0b",
+                border: "1px solid #333",
+                padding: "10px 12px",
+                borderRadius: 12,
+                color: "#f5f5f5",
+                fontWeight: 800,
+              }}
+            >
+              פתח מקור
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  }
+  
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState(null);
 
