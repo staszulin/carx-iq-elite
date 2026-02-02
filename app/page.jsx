@@ -11,6 +11,13 @@ const BRAND = {
 const ACCESS_CODES = [
   "ELITE-2026",
   "VIP-9999",
+  function getPlanFromCode(code) {
+  const c = String(code || "").trim().toUpperCase();
+  if (c.startsWith("VIP-")) return "VIP";
+  if (c.startsWith("ELITE-")) return "ELITE";
+  return "NONE";
+  }
+  
 ];
 
 function isValidCode(code) {
@@ -55,7 +62,41 @@ function computeIq(item) {
 }
 
 function SearchElite() {
-  function WebSearch() {
+  <WebSearch plan={plan} />
+    ) {  const DAILY_LIMIT = 20;{plan === "VIP" ? (
+  <div style={{ marginTop: 10, opacity: 0.8, fontSize: 13 }}>
+    מצב VIP: ללא הגבלה
+  </div>
+) : (
+  <div style={{ marginTop: 10, opacity: 0.8, fontSize: 13 }}>
+    מגבלה יומית: 20 חיפושים. נשאר לך:{" "}
+    <span style={{ color: BRAND.accent, fontWeight: 900 }}>
+      {Math.max(0, 20 - (typeof window !== "undefined" ? (Number(localStorage.getItem(`carx_websearch_${todayKey()}`)) || 0) : 0))}
+    </span>
+  </div>
+)}
+                                
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function getUsage() {
+  const key = `carx_websearch_${todayKey()}`;
+  const raw = localStorage.getItem(key);
+  const used = raw ? Number(raw) : 0;
+  return { key, used: Number.isFinite(used) ? used : 0 };
+}
+
+function incUsage() {
+  const { key, used } = getUsage();
+  localStorage.setItem(key, String(used + 1));
+  return used + 1;
+}
+                                
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
@@ -65,14 +106,23 @@ function SearchElite() {
 
   async function runSearch() {
     const query = q.trim();
-    if (!query) return;
+    if (!query) return;if (plan !== "VIP") {
+  const { used } = getUsage();
+  if (used >= DAILY_LIMIT) {
+    setErr("הגעת למגבלה: 20 חיפושי רשת היום. שדרג ל-VIP ללא הגבלה.");
+    setItems([]);
+    return;
+  }
+    }
+    
     setLoading(true);
     setErr("");
     try {
       const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
       const data = await r.json();
       if (!data.ok) throw new Error(data.error || "שגיאה");
-      setItems(data.items || []);
+      setItems(data.items || []);if (plan !== "VIP") incUsage();
+      
      setExpanded(data.expandedQuery || "");
      
    } catch (e) {
@@ -296,13 +346,18 @@ function SearchElite() {
 
 export default function Page() {
   const [code, setCode] = useState("");
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);const [plan, setPlan] = useState("NONE");
+  
   const [msg, setMsg] = useState("");
 
-  useEffect(() => {
-    const saved = localStorage.getItem("carx_access") || "";
-    if (isValidCode(saved)) setUnlocked(true);
-  }, []);
+useEffect(() => {
+  const saved = localStorage.getItem("carx_access") || "";
+  if (isValidCode(saved)) {
+    setUnlocked(true);
+    setPlan(getPlanFromCode(saved));
+  }
+}, []);
+
 
   function unlock() {
     const c = String(code || "").trim().toUpperCase();
@@ -310,12 +365,14 @@ export default function Page() {
     if (!isValidCode(c)) return setMsg("קוד לא נכון. אחרי תשלום תקבל קוד גישה.");
     localStorage.setItem("carx_access", c);
     setUnlocked(true);
+    setPlan(getPlanFromCode(c));
+
     setMsg("");
   }
 
   function logout() {
     localStorage.removeItem("carx_access");
-    setUnlocked(false);
+    setUnlocked(false);setPlan("NONE");
     setCode("");
     setMsg("");
   }
