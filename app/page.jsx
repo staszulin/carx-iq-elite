@@ -59,6 +59,8 @@ function SearchElite() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
+  const [expanded, setExpanded] = useState("");
+    
   const [err, setErr] = useState("");
 
   async function runSearch() {
@@ -71,7 +73,9 @@ function SearchElite() {
       const data = await r.json();
       if (!data.ok) throw new Error(data.error || "שגיאה");
       setItems(data.items || []);
-    } catch (e) {
+     setExpanded(data.expandedQuery || "");
+     
+   } catch (e) {
       setErr("לא הצלחתי להביא תוצאות. בדוק שיש SERPAPI_KEY ב-Vercel.");
       setItems([]);
     } finally {
@@ -81,7 +85,7 @@ function SearchElite() {
 
   return (
     <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
-      <div style={{ fontWeight: 900, fontSize: 16 }}>חיפוש רשת (כמו גוגל)</div>
+      <div style={{ fonteight: 900, fontSize: 16 }}>חיפוש רשת (כמו גוגל)</div>
       <div style={{ opacity: 0.8, marginTop: 8, lineHeight: 1.5 }}>
         תוצאות מוצגות עם מקור גלוי ולינק החוצה. זה חוקי ויציב.
       </div>
@@ -130,6 +134,12 @@ function SearchElite() {
             <div style={{ opacity: 0.75, fontSize: 12 }}>{x.source}</div>
             <div style={{ fontWeight: 900, marginTop: 6 }}>{x.title}</div>
             <div style={{ opacity: 0.85, marginTop: 8, lineHeight: 1.5 }}>{x.snippet}</div>
+            {expanded ? (
+  <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13, lineHeight: 1.4 }}>
+    מחפש בפועל: <span style={{ color: BRAND.accent, fontWeight: 800 }}>{expanded}</span>
+  </div>
+) : null}
+            
             <a
               href={x.link}
               target="_blank"
