@@ -1,7 +1,21 @@
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const q = (searchParams.get("q") || "").trim();
+    const raw = (searchParams.get("q") || "").trim();
+
+if (!raw) {
+  return Response.json({ ok: false, error: "Missing query" }, { status: 400 });
+}
+
+// הרחבה אוטומטית לחיפוש ישראלי (חוקי) בסגנון גוגל
+const hasSiteHint =
+  /(\byad2\b|יד2|marketplace|מרקטפלייס|פייסבוק|facebook|קבוצות)/i.test(raw);
+
+const q = hasSiteHint
+  ? raw
+  : `${raw} יד2 marketplace פייסבוק קבוצות מחיר ק״מ יד`;
+
+    
     if (!q) {
       return Response.json({ ok: false, error: "Missing query" }, { status: 400 });
     }
@@ -37,7 +51,8 @@ export async function GET(req) {
       })(),
     }));
 
-    return Response.json({ ok: true, items });
+    return Response.json({ ok: true, items, expandedQuery: q });
+    
   } catch (e) {
     return Response.json({ ok: false, error: "Server error" }, { status: 500 });
   }
