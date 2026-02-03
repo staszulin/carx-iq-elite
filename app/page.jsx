@@ -61,35 +61,45 @@ function computeIq(item) {
   return { iq, verdict, fair, flags };
 }
 
-function SearchElite() {
-  <WebSearch plan={plan} />
-    ) {  const DAILY_LIMIT = 20;{plan === "VIP" ? (
-  <div style={{ marginTop: 10, opacity: 0.8, fontSize: 13 }}>
-    מצב VIP: ללא הגבלה
-  </div>
-) : (
-  <div style={{ marginTop: 10, opacity: 0.8, fontSize: 13 }}>
-    מגבלה יומית: 20 חיפושים. נשאר לך:{" "}
-    <span style={{ color: BRAND.accent, fontWeight: 900 }}>
-      {Math.max(0, 20 - (typeof window !== "undefined" ? (Number(localStorage.getItem(`carx_websearch_${todayKey()}`)) || 0) : 0))}
-    </span>
-  </div>
-)}
-                                
-function todayKey() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+function WebSearch({ plan }) {
+<WebSearch plan={plan} />
+  
+  const DAILY_LIMIT = 20;
+
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+
+  function getUsage() {
+    const key = `carx_websearch_${todayKey()}`;
+    const raw = localStorage.getItem(key);
+    const used = raw ? Number(raw) : 0;
+    return { key, used };
+  }
+
+  return (
+    <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
+      <div style={{ fontWeight: 900, marginBottom: 6 }}>
+        חיפוש רשת (כמו גוגל)
+      </div>
+
+      {plan === "VIP" ? (
+        <div style={{ opacity: 0.8 }}>
+          מצב VIP: ללא הגבלה
+        </div>
+      ) : (
+        <div style={{ opacity: 0.8 }}>
+          מגבלה יומית: 20 חיפושים. נשאר לך:{" "}
+          <span style={{ color: BRAND.accent, fontWeight: 900 }}>
+            {Math.max(0, 20 - getUsage().used)}
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
-function getUsage() {
-  const key = `carx_websearch_${todayKey()}`;
-  const raw = localStorage.getItem(key);
-  const used = raw ? Number(raw) : 0;
-  return { key, used: Number.isFinite(used) ? used : 0 };
-}
 
 function incUsage() {
   const { key, used } = getUsage();
