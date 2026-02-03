@@ -3,26 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { LISTINGS } from "./data/listings";
 
-const BRAND = {
-  name: "CAR-X IQ Elite",
-  accent: "#d4af37",
-};
+const BRAND = { name: "CAR-X IQ Elite", accent: "#d4af37" };
 
-const ACCESS_CODES = [
-  "ELITE-2026",
-  "VIP-9999",
-  function getPlanFromCode(code) {
-  const c = String(code || "").trim().toUpperCase();
-  if (c.startsWith("VIP-")) return "VIP";
-  if (c.startsWith("ELITE-")) return "ELITE";
-  return "NONE";
-  }
-  
-];
+const ACCESS_CODES = ["ELITE-2026", "VIP-9999"];
 
 function isValidCode(code) {
   const c = String(code || "").trim().toUpperCase();
   return ACCESS_CODES.includes(c);
+}
+
+function getPlanFromCode(code) {
+  const c = String(code || "").trim().toUpperCase();
+  if (c.startsWith("VIP-")) return "VIP";
+  if (c.startsWith("ELITE-")) return "ELITE";
+  return "NONE";
 }
 
 function formatNis(n) {
@@ -46,7 +40,6 @@ function computeIq(item) {
   else priceScore = 3;
 
   const iq = Math.max(1, Math.min(100, yearScore + kmScore + handScore + priceScore));
-
   let verdict = "סביר";
   if (iq >= 80) verdict = "מציאה";
   else if (iq >= 60) verdict = "סביר";
@@ -61,170 +54,8 @@ function computeIq(item) {
   return { iq, verdict, fair, flags };
 }
 
-function WebSearch({ plan }) {
-<WebSearch plan={plan} />
-  
-  const DAILY_LIMIT = 20;
-
-  function todayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  }
-
-  function getUsage() {
-    const key = `carx_websearch_${todayKey()}`;
-    const raw = localStorage.getItem(key);
-    const used = raw ? Number(raw) : 0;
-    return { key, used };
-  }
-
-  return (
-    <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
-      <div style={{ fontWeight: 900, marginBottom: 6 }}>
-        חיפוש רשת (כמו גוגל)
-      </div>
-
-      {plan === "VIP" ? (
-        <div style={{ opacity: 0.8 }}>
-          מצב VIP: ללא הגבלה
-        </div>
-      ) : (
-        <div style={{ opacity: 0.8 }}>
-          מגבלה יומית: 20 חיפושים. נשאר לך:{" "}
-          <span style={{ color: BRAND.accent, fontWeight: 900 }}>
-            {Math.max(0, 20 - getUsage().used)}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-function incUsage() {
-  const { key, used } = getUsage();
-  localStorage.setItem(key, String(used + 1));
-  return used + 1;
-}
-                                
-  const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState([]);
-  const [expanded, setExpanded] = useState("");
-    
-  const [err, setErr] = useState("");
-
-  async function runSearch() {
-    const query = q.trim();
-    if (!query) return;if (plan !== "VIP") {
-  const { used } = getUsage();
-  if (used >= DAILY_LIMIT) {
-    setErr("הגעת למגבלה: 20 חיפושי רשת היום. שדרג ל-VIP ללא הגבלה.");
-    setItems([]);
-    return;
-  }
-    }
-    
-    setLoading(true);
-    setErr("");
-    try {
-      const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const data = await r.json();
-      if (!data.ok) throw new Error(data.error || "שגיאה");
-      setItems(data.items || []);if (plan !== "VIP") incUsage();
-      
-     setExpanded(data.expandedQuery || "");
-     
-   } catch (e) {
-      setErr("לא הצלחתי להביא תוצאות. בדוק שיש SERPAPI_KEY ב-Vercel.");
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
-      <div style={{ fonteight: 900, fontSize: 16 }}>חיפוש רשת (כמו גוגל)</div>
-      <div style={{ opacity: 0.8, marginTop: 8, lineHeight: 1.5 }}>
-        תוצאות מוצגות עם מקור גלוי ולינק החוצה. זה חוקי ויציב.
-      </div>
-
-      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="לדוגמה: טויוטה קורולה 2019 יד2 / marketplace..."
-          style={{
-            flex: "1 1 240px",
-            background: "#0b0b0b",
-            border: "1px solid #333",
-            color: "#f5f5f5",
-            padding: "12px 14px",
-            borderRadius: 12,
-            outline: "none",
-          }}
-        />
-        <button
-          onClick={runSearch}
-          style={{
-            background: BRAND.accent,
-            color: "#0b0b0b",
-            border: "none",
-            padding: "12px 18px",
-            borderRadius: 12,
-            fontWeight: 900,
-            cursor: "pointer",
-            minWidth: 110,
-          }}
-        >
-          {loading ? "מחפש..." : "חפש"}
-        </button>
-      </div>
-
-      {err ? (
-        <div style={{ marginTop: 12, background: "rgba(255,70,70,0.12)", border: "1px solid rgba(255,70,70,0.25)", padding: 10, borderRadius: 12 }}>
-          {err}
-        </div>
-      ) : null}
-
-      <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
-        {items.map((x, i) => (
-          <div key={i} style={{ background: "#111", border: "1px solid #333", borderRadius: 16, padding: 14 }}>
-            <div style={{ opacity: 0.75, fontSize: 12 }}>{x.source}</div>
-            <div style={{ fontWeight: 900, marginTop: 6 }}>{x.title}</div>
-            <div style={{ opacity: 0.85, marginTop: 8, lineHeight: 1.5 }}>{x.snippet}</div>
-            {expanded ? (
-  <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13, lineHeight: 1.4 }}>
-    מחפש בפועל: <span style={{ color: BRAND.accent, fontWeight: 800 }}>{expanded}</span>
-  </div>
-) : null}
-            
-            <a
-              href={x.link}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "inline-block",
-                marginTop: 10,
-                textDecoration: "none",
-                background: "#0b0b0b",
-                border: "1px solid #333",
-                padding: "10px 12px",
-                borderRadius: 12,
-                color: "#f5f5f5",
-                fontWeight: 800,
-              }}
-            >
-              פתח מקור
-            </a>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-  }
-  
+/** ---------- דמו פנימי ---------- */
+function SearchElite() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState(null);
 
@@ -240,7 +71,7 @@ function incUsage() {
     <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
       <div style={{ fontWeight: 900, fontSize: 16 }}>מנוע הצייד</div>
       <div style={{ opacity: 0.8, marginTop: 8, lineHeight: 1.5 }}>
-        חיפוש במאגר הדמו. בשלב הבא נחבר מקורות מורשים והעלאות.
+        חיפוש במאגר הדמו.
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
@@ -291,10 +122,6 @@ function incUsage() {
             </button>
           );
         })}
-
-        {filtered.length === 0 ? (
-          <div style={{ opacity: 0.7, marginTop: 10 }}>אין תוצאות. נסה מילים אחרות.</div>
-        ) : null}
       </div>
 
       {selected ? (
@@ -315,59 +142,193 @@ function incUsage() {
             style={{ width: "100%", borderRadius: 14, marginTop: 12, border: "1px solid #222" }}
           />
 
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <div>מחיר</div>
-              <div style={{ fontWeight: 900, color: BRAND.accent }}>{formatNis(selected.price)}</div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <div>איש קשר</div>
-              <div style={{ fontWeight: 900 }}>{selected.phone}</div>
-            </div>
-            <div style={{ opacity: 0.85 }}>{selected.notes}</div>
-
-            {(() => {
-              const r = computeIq(selected);
-              return (
-                <div style={{ marginTop: 6, background: "#111", border: "1px solid #333", borderRadius: 14, padding: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ fontWeight: 900 }}>IQ Score</div>
-                    <div style={{ fontWeight: 900, color: BRAND.accent }}>{r.iq}/100 · {r.verdict}</div>
-                  </div>
-                  <div style={{ opacity: 0.8, marginTop: 8 }}>
-                    הערכת מחיר הוגן (דמו): {formatNis(r.fair)}
-                  </div>
-                  {r.flags.length ? (
-                    <div style={{ marginTop: 8, opacity: 0.9 }}>
-                      דגלים: {r.flags.join(" · ")}
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 8, opacity: 0.75 }}>אין דגלים חריגים.</div>
-                  )}
+          {(() => {
+            const r = computeIq(selected);
+            return (
+              <div style={{ marginTop: 12, background: "#111", border: "1px solid #333", borderRadius: 14, padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                  <div style={{ fontWeight: 900 }}>IQ Score</div>
+                  <div style={{ fontWeight: 900, color: BRAND.accent }}>{r.iq}/100 · {r.verdict}</div>
                 </div>
-              );
-            })()}
-          </div>
+                <div style={{ opacity: 0.8, marginTop: 8 }}>
+                  הערכת מחיר הוגן (דמו): {formatNis(r.fair)}
+                </div>
+                <div style={{ marginTop: 8, opacity: 0.9 }}>
+                  {r.flags.length ? `דגלים: ${r.flags.join(" · ")}` : "אין דגלים חריגים."}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : null}
     </div>
   );
 }
 
+/** ---------- חיפוש רשת (כמו גוגל) עם מגבלה ---------- */
+function WebSearch({ plan }) {
+  const DAILY_LIMIT = 20;
+
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState([]);
+  const [expanded, setExpanded] = useState("");
+  const [err, setErr] = useState("");
+
+  function todayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getUsage() {
+    const key = `carx_websearch_${todayKey()}`;
+    const raw = localStorage.getItem(key);
+    const used = raw ? Number(raw) : 0;
+    return { key, used: Number.isFinite(used) ? used : 0 };
+  }
+
+  function incUsage() {
+    const { key, used } = getUsage();
+    localStorage.setItem(key, String(used + 1));
+  }
+
+  async function runSearch() {
+    const query = q.trim();
+    if (!query) return;
+
+    if (plan !== "VIP") {
+      const { used } = getUsage();
+      if (used >= DAILY_LIMIT) {
+        setErr("הגעת למגבלה: 20 חיפושי רשת היום. שדרג ל-VIP ללא הגבלה.");
+        setItems([]);
+        return;
+      }
+    }
+
+    setLoading(true);
+    setErr("");
+    try {
+      const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || "שגיאה");
+      setItems(data.items || []);
+      setExpanded(data.expandedQuery || "");
+
+      if (plan !== "VIP") incUsage();
+    } catch (e) {
+      setErr("לא הצלחתי להביא תוצאות. בדוק שיש SERPAPI_KEY ב-Vercel.");
+      setItems([]);
+      setExpanded("");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const remaining = plan === "VIP" ? "∞" : Math.max(0, DAILY_LIMIT - (typeof window !== "undefined" ? getUsage().used : 0));
+
+  return (
+    <div style={{ background: "#0f0f0f", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
+      <div style={{ fontWeight: 900, fontSize: 16 }}>חיפוש רשת (כמו גוגל)</div>
+
+      <div style={{ opacity: 0.8, marginTop: 8, lineHeight: 1.5 }}>
+        תוצאות עם מקור גלוי ולינק החוצה. {plan === "VIP" ? "VIP ללא הגבלה." : `מגבלה: ${DAILY_LIMIT} ביום.`}
+      </div>
+
+      <div style={{ marginTop: 10, opacity: 0.85, fontSize: 13 }}>
+        נשאר היום: <span style={{ color: BRAND.accent, fontWeight: 900 }}>{remaining}</span>
+      </div>
+
+      {expanded ? (
+        <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13, lineHeight: 1.4 }}>
+          מחפש בפועל: <span style={{ color: BRAND.accent, fontWeight: 800 }}>{expanded}</span>
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="לדוגמה: קורולה 2019"
+          style={{
+            flex: "1 1 240px",
+            background: "#0b0b0b",
+            border: "1px solid #333",
+            color: "#f5f5f5",
+            padding: "12px 14px",
+            borderRadius: 12,
+            outline: "none",
+          }}
+        />
+        <button
+          onClick={runSearch}
+          style={{
+            background: BRAND.accent,
+            color: "#0b0b0b",
+            border: "none",
+            padding: "12px 18px",
+            borderRadius: 12,
+            fontWeight: 900,
+            cursor: "pointer",
+            minWidth: 110,
+          }}
+        >
+          {loading ? "מחפש..." : "חפש"}
+        </button>
+      </div>
+
+      {err ? (
+        <div style={{ marginTop: 12, background: "rgba(255,70,70,0.12)", border: "1px solid rgba(255,70,70,0.25)", padding: 10, borderRadius: 12 }}>
+          {err}
+        </div>
+      ) : null}
+
+      <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+        {items.map((x, i) => (
+          <div key={i} style={{ background: "#111", border: "1px solid #333", borderRadius: 16, padding: 14 }}>
+            <div style={{ opacity: 0.75, fontSize: 12 }}>{x.source}</div>
+            <div style={{ fontWeight: 900, marginTop: 6 }}>{x.title}</div>
+            <div style={{ opacity: 0.85, marginTop: 8, lineHeight: 1.5 }}>{x.snippet}</div>
+            <a
+              href={x.link}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                textDecoration: "none",
+                background: "#0b0b0b",
+                border: "1px solid #333",
+                padding: "10px 12px",
+                borderRadius: 12,
+                color: "#f5f5f5",
+                fontWeight: 800,
+              }}
+            >
+              פתח מקור
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   const [code, setCode] = useState("");
-  const [unlocked, setUnlocked] = useState(false);const [plan, setPlan] = useState("NONE");
-  
+  const [unlocked, setUnlocked] = useState(false);
+  const [plan, setPlan] = useState("NONE");
   const [msg, setMsg] = useState("");
 
-useEffect(() => {
-  const saved = localStorage.getItem("carx_access") || "";
-  if (isValidCode(saved)) {
-    setUnlocked(true);
-    setPlan(getPlanFromCode(saved));
-  }
-}, []);
-
+  useEffect(() => {
+    const saved = localStorage.getItem("carx_access") || "";
+    if (isValidCode(saved)) {
+      setUnlocked(true);
+      setPlan(getPlanFromCode(saved));
+    }
+  }, []);
 
   function unlock() {
     const c = String(code || "").trim().toUpperCase();
@@ -376,13 +337,13 @@ useEffect(() => {
     localStorage.setItem("carx_access", c);
     setUnlocked(true);
     setPlan(getPlanFromCode(c));
-
     setMsg("");
   }
 
   function logout() {
     localStorage.removeItem("carx_access");
-    setUnlocked(false);setPlan("NONE");
+    setUnlocked(false);
+    setPlan("NONE");
     setCode("");
     setMsg("");
   }
@@ -434,20 +395,10 @@ useEffect(() => {
         </header>
 
         {!unlocked ? (
-          <div
-            style={{
-              marginTop: 18,
-              background: "#111",
-              border: "1px solid #333",
-              borderRadius: 18,
-              padding: 22,
-              boxShadow: "0 0 60px rgba(0,0,0,0.7)",
-            }}
-          >
+          <div style={{ marginTop: 18, background: "#111", border: "1px solid #333", borderRadius: 18, padding: 22 }}>
             <h1 style={{ margin: 0, color: BRAND.accent, letterSpacing: 1 }}>גישה ל-Elite</h1>
             <p style={{ opacity: 0.85, marginTop: 10, lineHeight: 1.5 }}>
-              כדי להיכנס צריך <b>קוד גישה</b>. אחרי תשלום אתה מקבל קוד.
-              זה מוצר פרימיום, לא “לוח”.
+              כדי להיכנס צריך <b>קוד גישה</b>.
             </p>
 
             <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
@@ -486,21 +437,20 @@ useEffect(() => {
                 {msg}
               </div>
             ) : null}
-
-            <div style={{ marginTop: 18, opacity: 0.7, fontSize: 13 }}>
-              עדיין לא שילמת? לחץ למעלה על <b>תשלום</b>.
-            </div>
           </div>
         ) : (
-          <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+          <div style={{ marginTop: 18, display: "grid", gap: 14 }}>
             <div style={{ background: "#111", border: "1px solid #333", borderRadius: 18, padding: 18 }}>
-              <div style={{ color: BRAND.accent, fontWeight: 900, letterSpacing: 1 }}>פתוח למנוי Elite</div>
+              <div style={{ color: BRAND.accent, fontWeight: 900, letterSpacing: 1 }}>
+                פתוח למנוי: {plan}
+              </div>
               <div style={{ opacity: 0.85, marginTop: 8 }}>
-                עכשיו יש חיפוש + IQ Score (דמו). בשלב הבא נחבר AI ומנויים אמיתיים.
+                ELITE: 20 חיפושי רשת ביום · VIP: ללא הגבלה
               </div>
             </div>
 
             <SearchElite />
+            <WebSearch plan={plan} />
           </div>
         )}
 
@@ -510,5 +460,4 @@ useEffect(() => {
       </div>
     </main>
   );
-                }
-              
+}
